@@ -1,5 +1,8 @@
+"""Example script to process a file from Azure Blob Storage."""
+
 import os
 import sys
+
 from azure.storage.blob import BlobServiceClient
 
 # Ensure Azure SDK for Python is installed
@@ -16,17 +19,22 @@ if len(sys.argv) != 2:
 
 blob_name = sys.argv[1]
 
+
 def process_file(file_path):
+    """Process the file content."""
     # Sample processing function (e.g., read file content)
     print(f"Processing file: {file_path}")
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         data = f.read()
         print(f"File content:\n{data}")
+
 
 try:
     # Initialize BlobServiceClient
     blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-    blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+    blob_client = blob_service_client.get_blob_client(
+        container=container_name, blob=blob_name
+    )
 
     # Download the blob to a local file
     download_file_path = f"./{blob_name}"

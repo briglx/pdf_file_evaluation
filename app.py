@@ -1,3 +1,5 @@
+"""Example app for rest api."""
+
 import os
 
 from flask import Flask, jsonify, request
@@ -17,6 +19,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 # API route to upload a file with associated metadata
 @app.route("/upload", methods=["POST"])
 def upload_file():
+    """Upload a file with associated metadata."""
     if "file" not in request.files:
         return jsonify({"error": "No file part in the request"}), 400
 

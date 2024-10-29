@@ -11,14 +11,18 @@ BLOB_NAME=$(basename "$FILE_PATH")
 
 # Upload file to Azure Blob Storage
 echo "Uploading $FILE_PATH to Azure Storage..."
-az storage blob upload \
+result=$(az storage blob upload \
     --account-name "$AZURE_STORAGE_ACCOUNT" \
     --container-name "$AZURE_STORAGE_CONTAINER" \
     --file "$FILE_PATH" \
     --name "$BLOB_NAME" \
-    --connection-string "$AZURE_STORAGE_CONNECTION_STRING"
+    --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+    --output json)
 
-if [ $? -eq 0 ]; then
+# Check if the file is uploaded successfully
+is_uploaded=$(echo "$result" | grep -c "url")
+
+if [ "$is_uploaded" -eq 1 ]; then
     echo "File uploaded successfully!"
     echo "Triggering the Python processing script..."
     python3 process_trigger.py "$BLOB_NAME"

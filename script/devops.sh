@@ -119,7 +119,7 @@ validate_deployment(){
         echo "Deployment failed. Exiting."
         exit 1
     fi
-    
+
 }
 
 provision(){
@@ -141,7 +141,7 @@ provision(){
     echo "Deploying ${deployment_name} with ${additional_parameters[*]}"
     results=$(az deployment sub create --name "$deployment_name" --location "$location" --template-file "${INFRA_DIRECTORY}/main.bicep" --parameters @"${INFRA_DIRECTORY}/main.parameters.json")
     is_valid=$(echo "$results" | jq -r '.properties.provisioningState')
-    
+
     if [ "$is_valid" != "Succeeded" ]
     then
         echo "Deployment failed. Exiting."
