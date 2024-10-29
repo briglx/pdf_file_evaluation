@@ -1,2 +1,16 @@
-isort
-black
+-r requirements.txt
+
+bandit[toml]==1.7.8
+black==24.3.0
+codespell==2.2.6
+flake8-docstrings==1.6.0
+flake8==7.0.0
+isort==5.13.2
+pre-commit==3.7.0
+pydocstyle==6.3.0
+pylint==3.1.0
+pytest-cov==4.1.0
+pytest==7.4.4
+rstcheck==6.2.1
+Sphinx==7.2.6
+tomli==2.0.1
