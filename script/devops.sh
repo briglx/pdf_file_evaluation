@@ -92,11 +92,18 @@ provision_connectivity(){
     source "${INFRA_DIRECTORY}/connectivity_deployment.sh" --parameters "${additional_parameters[@]}"
 }
 
-validate_deployment(){
-    # Validate the deployment.
-    local app_name=$1
-    local location=$2
-    local deployment_name="${app_name}.coreinfra.Provisioning-${run_date}"
+provision_core(){
+    local command=$1
+    local app_name=$2
+    local location=$3
+    local deployment_name="${app_name}.core.${run_date}"
+
+    # Check that command is either validate or create
+    if [ "$command" != "validate" ] && [ "$command" != "create" ]
+    then
+        echo "Invalid command. Must be either 'validate' or 'create'."
+        exit 1
+    fi
 
     additional_parameters=()
     if [ -n "$app_name" ]
@@ -108,56 +115,40 @@ validate_deployment(){
         additional_parameters+=("location=$location")
     fi
 
-    echo "Deploying ${deployment_name} with ${additional_parameters[*]}"
+    echo "${command^} Deployment ${deployment_name} with ${additional_parameters[*]}"
+    set +e
+    results=$(az deployment sub "$command" --name "$deployment_name" --location "$location" --template-file "${INFRA_DIRECTORY}/main.bicep" --parameters @"${INFRA_DIRECTORY}/main.parameters.json" --no-prompt --only-show-errors 2>&1)
+    set -e
 
-    # shellcheck source=/home/brlamore/src/azure_subscription_boilerplate/iac/common_services_deployment.sh
-    results=$(az deployment sub validate --name "$deployment_name" --location "$location" --template-file "${INFRA_DIRECTORY}/main.bicep" --parameters @"${INFRA_DIRECTORY}/main.parameters.json")
-    is_valid=$(echo "$results" | jq -r '.properties.provisioningState')
-
-    if [ "$is_valid" != "Succeeded" ]
-    then
-        echo "Deployment failed. Exiting."
+    # Check for errors in the results
+    if grep -q "ERROR" <<< "$results"; then
+        echo "${command^} deployment failed due to an error."
+        echo "$results"
         exit 1
     fi
 
-}
-
-provision(){
-    # Provision resources for the application.
-    local app_name=$1
-    local location=$2
-    local deployment_name="${app_name}.coreinfra.Provisioning-${run_date}"
-
-    additional_parameters=()
-    if [ -n "$app_name" ]
-    then
-        additional_parameters+=("applicationName=$app_name")
-    fi
-    if [ -n "$location" ]
-    then
-        additional_parameters+=("location=$location")
-    fi
-
-    echo "Deploying ${deployment_name} with ${additional_parameters[*]}"
-    results=$(az deployment sub create --name "$deployment_name" --location "$location" --template-file "${INFRA_DIRECTORY}/main.bicep" --parameters @"${INFRA_DIRECTORY}/main.parameters.json")
-    is_valid=$(echo "$results" | jq -r '.properties.provisioningState')
-
+    # Check the provisioning state
+    is_valid=$(jq -r '.properties.provisioningState' <<< "$results")
     if [ "$is_valid" != "Succeeded" ]
     then
-        echo "Deployment failed. Exiting."
+        echo "${command^} deployment failed. Provisioning state is not 'Succeeded'."
+        echo "$results"
         exit 1
     fi
 
-    # Get the output variables from the deployment
-    output_variables=$(echo "$results" | jq -r '.properties.outputs')
-    # output_variables=$(az deployment sub show -n "${deployment_name}" --query 'properties.outputs' --output json)
-    echo "Save deployment $deployment_name output variables to ${ENV_FILE}"
-    {
-        echo ""
-        echo "# Deployment output variables"
-        echo "# Generated on ${ISO_DATE_UTC}"
-        echo "$output_variables" | jq -r 'to_entries[] | "\(.key | ascii_upcase )=\(.value.value)"'
-    }>> "$ENV_FILE"
+    if [ "$command" == "create" ]
+    then
+        # Get the output variables from the deployment
+        output_variables=$(echo "$results" | jq -r '.properties.outputs')
+        # output_variables=$(az deployment sub show -n "${deployment_name}" --query 'properties.outputs' --output json)
+        echo "Save deployment $deployment_name output variables to ${ENV_FILE}"
+        {
+            echo ""
+            echo "# Deployment output variables"
+            echo "# Generated on ${ISO_DATE_UTC}"
+            echo "$output_variables" | jq -r 'to_entries[] | "\(.key | ascii_upcase )=\(.value.value)"'
+        }>> "$ENV_FILE"
+    fi
 }
 
 delete(){
@@ -290,8 +281,8 @@ case "$command" in
         exit 0
         ;;
     provision)
-        validate_deployment "$app_name" "$location"
-        provision "$app_name" "$location"
+        provision_core "validate" "$app_name" "$location"
+        provision_core "create" "$app_name" "$location"
         exit 0
         ;;
     delete)

@@ -34,21 +34,8 @@ az login --tenant $AZURE_TENANT_ID --use-device-code
 
 ```bash
 # Provision Azure resources
-./scripts/devops.sh provision --name "$APP_NAME"
+./script/devops.sh provision --name "$APP_NAME"
 
-
-ISO_DATE_UTC=$(date -u +'%Y-%m-%dT%H%M%SZ')
-deployment_name="${APP_NAME}-${ISO_DATE_UTC}-coreinfra"
-az deployment sub validate --name "$deployment_name" --template-file ./iac/main.bicep --parameters @./iac/main.parameters.json --parameters applicationName="$APP_NAME" --location $AZURE_LOCATION
-az deployment sub create --name "$deployment_name" --template-file ./iac/main.bicep --parameters @./iac/main.parameters.json --parameters applicationName="$APP_NAME" --location $AZURE_LOCATION
-
-echo "Save Azure variables to ${ENV_FILE}"
-{
-    echo ""
-    echo "# Script create_cicd_sp output variables."
-    echo "# Generated on ${ISO_DATE_UTC} for subscription ${AZURE_SUBSCRIPTION_ID}"
-    echo "CICD_CLIENT_ID=$app_client_id"
-}>> "$ENV_FILE"
 ```
 
 # Development

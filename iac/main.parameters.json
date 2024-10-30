@@ -7,6 +7,24 @@
         },
         "location": {
             "value": "westus3"
+        },
+        "connectivityRGName": {
+            "value": "rg_connectivity_westus3"
+        },
+        "coreVnetName": {
+            "value": "vnet-dev-westus3"
+        },
+        "coreVnetPrefix": {
+            "value": "10.2.0.0/16"
+        },
+        "commonRGName": {
+            "value": "rg_management_eastus"
+        },
+        "commonAcrName": {
+            "value": "crdefaulteastus"
+        },
+        "commonLogAnalyticsName": {
+            "value": "DefaultWorkspace-eastus"
         }
     }
 }
