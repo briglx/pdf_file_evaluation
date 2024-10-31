@@ -12,15 +12,17 @@ param location string
 param connectivityRGName string
 param coreVnetName string
 param coreVnetPrefix string
+param appSubnetName string
 
 param commonRGName string
 param commonAcrName string
 param commonLogAnalyticsName string
+param commonAppInsightsName string
 
 var abbrs = loadJsonContent('./abbreviation.json')
 var resourceToken = toLower(uniqueString(subscription().id, applicationName, location))
 var tags = { 'app-name': applicationName}
-
+param baseTime string = utcNow('u')
 
 // Connectivity RG
 resource rg_connectivity 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -32,7 +34,7 @@ resource rg_connectivity 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 }
 
 // Core Vnet
-resource coreVnet 'Microsoft.Network/virtualNetworks@2019-11-01' existing = {
+resource coreVnet 'Microsoft.Network/virtualNetworks@2024-01-01' existing = if (!(empty(coreVnetName))) {
   scope: rg_connectivity
   name: coreVnetName
 }
@@ -45,13 +47,18 @@ module vnet './core/connectivity/vnet.bicep' = if (!vnetExists) {
     vnetAddressPrefix: !empty(coreVnetPrefix) ? coreVnetPrefix : '10.2.0.0/16'
     subnet1Name: 'snet-prv-endpoint'
     subnet1Prefix: '10.2.0.64/26'
-    subnet2Name: 'snet-app'
-    subnet2Prefix: '10.2.0.192/26'
+    subnet2Name: !empty(appSubnetName) ? appSubnetName : 'snet-app'
+    subnet2Prefix: '10.2.2.0/23'
   }
+}
+resource appSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-01-01' existing = if (vnetExists) {
+  name: appSubnetName
+  scope: rg_connectivity
 }
 var coreVirtualNetworkId = !empty(coreVnet.id) ? coreVnet.id : vnet.outputs.subnet1ResourceId
 var coreVirtualNetworkName = !empty(coreVnet.id) ? coreVnet.name : vnet.outputs.vnetName
 var coreVirtualNetworkPrefix = !empty(coreVnet.id) ? coreVnet.properties.addressSpace.addressPrefixes[0] : vnet.outputs.vnetAddressPrefix
+var appSubnetId = !empty(coreVnet.id) ? appSubnet.id : vnet.outputs.subnet2ResourceId
 
 /////////// Common ///////////
 // Common Resource Group
@@ -106,6 +113,25 @@ var logAnalyticsName = !empty(commonLogAnalytics.id) ? commonLogAnalytics.name :
 var logAnalyticsWorkspaceId = !empty(commonLogAnalytics.id) ? commonLogAnalytics.id : logAnalytics.outputs.id
 var logAnalyticsPrimaryKey = !empty(commonLogAnalytics.id) ? commonLogAnalytics.listKeys().primarySharedKey : logAnalytics.outputs.primaryKey
 
+// App Insights
+resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+  scope: rg_common
+  name: commonAppInsightsName
+}
+var applicationInsightsExists = !empty(applicationInsights.id)
+module appInsights './core/monitor/applicationinsights.bicep' = if (!applicationInsightsExists) {
+  name: 'appInsights'
+  scope: rg_common
+  params: {
+    name: !empty(commonAppInsightsName) ? commonAppInsightsName : '${abbrs.insightsComponents}-default-${rg_common.location}'
+    location: location
+    tags: tags
+    logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
+  }
+}
+var appInsightsName = !empty(applicationInsights.id) ? applicationInsights.name : appInsights.outputs.name
+
+
 ////////////// App Specific Resources //////////////
 // Resource Group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -114,18 +140,20 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: tags
 }
 
-// // Container App Environment
-// resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
-//   name: '${applicationName}-env'
-//   scope: rg
-//   location: location
-//   tags: tags
-//   properties: {
-//     vnetConfiguration: {
-//       infrastructureSubnetId: resourceId('Microsoft.Network/virtualNetworks/subnets', vnetName, subnetName)
-//     }
-//   }
-// }
+// Container App Environment
+var appEnvName = '${abbrs.appManagedEnvironments}${applicationName}_${location}'
+module environment './core/host/managedEnvironment.bicep' = {
+  name: 'containerAppEnv'
+  scope: rg
+  params: {
+    name: appEnvName
+    location: location
+    tags: tags
+    logAnalyticsWorkspaceName: logAnalyticsName
+    logAnalyticsRgName: commonRgName
+    appSubnetId: appSubnet.id
+  }
+}
 
 output RESOURCE_TOKEN string = resourceToken
 output AZURE_RESOURCE_GROUP_NAME string = rg.name
@@ -135,6 +163,7 @@ output vnetExists bool = vnetExists
 output VNET_CORE_ID string = coreVirtualNetworkId
 output VNET_CORE_NAME string = coreVirtualNetworkName
 output VNET_CORE_PREFIX string = coreVirtualNetworkPrefix
+output APP_SUBNET_ID string = appSubnetId
 
 output AZURE_COMMON_RG_NAME string = commonRgName
 output ACR_NAME string = containerRegistryName
@@ -143,3 +172,8 @@ output workspaceExists bool = workspaceExists
 output LOG_ANALYTICS_NAME string = logAnalyticsName
 output LOG_ANALYTICS_WORKSPACE_ID string = logAnalyticsWorkspaceId
 output LOG_ANALYTICS_PRIMARY_KEY string = logAnalyticsPrimaryKey
+output APP_INSIGHTS_NAME string = appInsightsName
+
+output APP_ENVIRONMENT_ID string = environment.outputs.id
+output APP_ENVIRONMENT_NAME string = environment.outputs.name
+output baseTime string = baseTime

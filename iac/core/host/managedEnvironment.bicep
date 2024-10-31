@@ -2,54 +2,38 @@ param name string
 param location string = resourceGroup().location
 param tags object = {}
 
-resource managedEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = {
-  name: name
+// Reference Resource params
+param logAnalyticsWorkspaceName string
+param logAnalyticsRgName string
+param appSubnetId string
+
+var cleanAppEnvName = replace(replace(name, '-', ''), '_', '')
+
+// Reference Resource
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = if (!(empty(logAnalyticsWorkspaceName))) {
+  name: logAnalyticsWorkspaceName
+  scope: resourceGroup(logAnalyticsRgName)
+}
+
+// App Environment
+resource appEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = {
+  name: cleanAppEnvName
   location: location
   tags: tags
-  kind: 'string'
   properties: {
     appLogsConfiguration: {
-      destination: 'string'
+      destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: 'string'
-        sharedKey: 'string'
-      }
-    }
-    customDomainConfiguration: {
-      certificatePassword: 'string'
-      certificateValue: any()
-      dnsSuffix: 'string'
-    }
-    daprAIConnectionString: 'string'
-    daprAIInstrumentationKey: 'string'
-    daprConfiguration: {}
-    infrastructureResourceGroup: 'string'
-    kedaConfiguration: {}
-    peerAuthentication: {
-      mtls: {
-        enabled: bool
-      }
-    }
-    peerTrafficConfiguration: {
-      encryption: {
-        enabled: bool
+        customerId: logAnalytics.properties.customerId
+        sharedKey: logAnalytics.listKeys().primarySharedKey
       }
     }
     vnetConfiguration: {
-      dockerBridgeCidr: 'string'
-      infrastructureSubnetId: 'string'
-      internal: bool
-      platformReservedCidr: 'string'
-      platformReservedDnsIP: 'string'
+      infrastructureSubnetId: appSubnetId
+      internal: true
     }
-    workloadProfiles: [
-      {
-        maximumCount: int
-        minimumCount: int
-        name: 'string'
-        workloadProfileType: 'string'
-      }
-    ]
-    zoneRedundant: bool
   }
 }
+
+output id string = appEnvironment.id
+output name string = appEnvironment.name

@@ -26,6 +26,7 @@ cp example.env .env
 
 # Login to az. Only required once per install.
 az login --tenant $AZURE_TENANT_ID --use-device-code
+az provider register --namespace Microsoft.ContainerService
 
 # Create Azure CICD system identity
 ./script/create_cicd_sh.sh
@@ -34,8 +35,7 @@ az login --tenant $AZURE_TENANT_ID --use-device-code
 
 ```bash
 # Provision Azure resources
-./script/devops.sh provision --name "$APP_NAME"
-
+./script/devops.sh provision --name "$APP_NAME" --location "$AZURE_LOCATION"
 ```
 
 # Development

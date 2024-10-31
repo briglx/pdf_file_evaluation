@@ -57,6 +57,13 @@ validate_parameters(){
         show_help
         exit 1
     fi
+
+    if [ -z "$location" ]
+    then
+        echo "location is required" >&2
+        show_help
+        exit 1
+    fi
 }
 
 create_sp(){
@@ -117,7 +124,13 @@ provision_core(){
 
     echo "${command^} Deployment ${deployment_name} with ${additional_parameters[*]}"
     set +e
-    results=$(az deployment sub "$command" --name "$deployment_name" --location "$location" --template-file "${INFRA_DIRECTORY}/main.bicep" --parameters @"${INFRA_DIRECTORY}/main.parameters.json" --no-prompt --only-show-errors 2>&1)
+    results=$(az deployment sub "$command" \
+        --name "${deployment_name}" \
+        --location "$location" \
+        --template-file "${INFRA_DIRECTORY}/main.bicep" \
+        --parameters "${INFRA_DIRECTORY}/main.parameters.json" \
+        --parameters "${additional_parameters[@]}" \
+        --no-prompt --only-show-errors 2>&1)
     set -e
 
     # Check for errors in the results
@@ -226,7 +239,7 @@ OPTIONS=n:m:g:l:jh
 # Variables
 app_name="myapp"
 message=""
-location="westus3"
+location=""
 jumpbox="false"
 run_date=$(date +%Y%m%dT%H%M%S)
 ISO_DATE_UTC=$(date -u +'%Y-%m-%dT%H:%M:%SZ')

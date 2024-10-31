@@ -6,7 +6,7 @@
             "value": "pdf_file_evaluation"
         },
         "location": {
-            "value": "westus3"
+            "value": "eastus"
         },
         "connectivityRGName": {
             "value": "rg_connectivity_westus3"
@@ -17,6 +17,9 @@
         "coreVnetPrefix": {
             "value": "10.2.0.0/16"
         },
+        "appSubnetName": {
+            "value": "vnet-dev-westus3/snet-app"
+        },
         "commonRGName": {
             "value": "rg_management_eastus"
         },
@@ -25,6 +28,9 @@
         },
         "commonLogAnalyticsName": {
             "value": "DefaultWorkspace-eastus"
+        },
+        "commonAppInsightsName": {
+            "value": "appins-default-eastus"
         }
     }
 }
