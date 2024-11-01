@@ -155,6 +155,27 @@ module environment './core/host/managedEnvironment.bicep' = {
   }
 }
 
+// Container App
+resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
+  name: '${abbrs.appContainerApps}${applicationName}_${location}'
+  location: location
+  tags: tags
+  properties: {
+    environment: {
+      id: environment.outputs.id
+    }
+    containerConfiguration: {
+      containerRegistry: {
+        id: commonRegistry.id
+      }
+      image: {
+        name: 'nginx'
+        tag: 'latest'
+      }
+    }
+  }
+}
+
 output RESOURCE_TOKEN string = resourceToken
 output AZURE_RESOURCE_GROUP_NAME string = rg.name
 

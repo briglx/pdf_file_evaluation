@@ -46,18 +46,6 @@ You'll need to set up a development environment if you want to develop a new fea
 
 ## Setup local dev environment
 
-If you use the devcontainer image you need to log into the Container registry
-
-```bash
-# load .env vars (optional)
-[ -f .env ] && while IFS= read -r line; do [[ $line =~ ^[^#]*= ]] && eval "export $line"; done < .env
-
-az login --use-device-code --tenant "$CONTAINER_AZURE_TENANT_ID"
-az acr login --name $CONTAINER_REGISTRY_LOGIN_SERVER --username $CONTAINER_TOKEN_NAME --password $CONTAINER_TOKEN_PWD
-docker login -u $CONTAINER_TOKEN_NAME -p $CONTAINER_TOKEN_PWD  $CONTAINER_REGISTRY_LOGIN_SERVER
-echo $CONTAINER_TOKEN_PWD | docker login --username $CONTAINER_TOKEN_NAME --password-stdin $CONTAINER_REGISTRY_LOGIN_SERVER
-```
-
 If you want to develop outside of a docker devcontainer you can use the following commands to setup your environment.
 
 ```bash
@@ -143,40 +131,5 @@ codespell .
 shellcheck -x ./script/*.sh
 ```
 
-
-# Testing
-
-```bash
-# Run app
-python app.py
-
-# Call API with
-metadata_title="Sample File"
-metadata_description="This is a test file"
-test_file_path="test/test_pdf_file.pdf"
-curl -F "file=@${test_file_path}" -F "title=${metadata_title}" -F "description=${metadata_description}" http://localhost:5000/upload
-```
-
-Response
-```json
-{
-  "file_name": "test_pdf_file.pdf",
-  "message": "File successfully uploaded",
-  "metadata": {
-    "description": "This is a test file",
-    "title": "Sample File"
-  }
-}
-```
-
-Test results
-```bash
-request_test_file="test/test_pdf_file.pdf"
-response_test_file="uploads/test_pdf_file.pdf"
-# No output means files are the same
-diff "$request_test_file" "$response_test_file"
-```
-
-
-# Read Me
+# References
 - Container App Private VNet - https://learn.microsoft.com/en-us/azure/container-apps/networking?tabs=workload-profiles-env%2Cazure-cli
