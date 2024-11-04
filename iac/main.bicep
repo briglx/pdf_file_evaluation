@@ -155,26 +155,39 @@ module environment './core/host/managedEnvironment.bicep' = {
   }
 }
 
-// Container App
-resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
-  name: '${abbrs.appContainerApps}${applicationName}_${location}'
-  location: location
-  tags: tags
-  properties: {
-    environment: {
-      id: environment.outputs.id
-    }
-    containerConfiguration: {
-      containerRegistry: {
-        id: commonRegistry.id
-      }
-      image: {
-        name: 'nginx'
-        tag: 'latest'
-      }
-    }
+module containerApp './core/host/containerapp.bicep' = {
+  name: 'containerApp'
+  scope: rg
+  params: {
+    name: '${abbrs.appContainerApps}${applicationName}_${location}'
+    location: location
+    tags: tags
+    environmentName: appEnvName
+    environmentRg: rg.name
+    registryName: containerRegistryName
+    registryRg: commonRgName
   }
 }
+// // Container App
+// resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
+//   name: '${abbrs.appContainerApps}${applicationName}_${location}'
+//   location: location
+//   tags: tags
+//   properties: {
+//     environment: {
+//       id: environment.outputs.id
+//     }
+//     containerConfiguration: {
+//       containerRegistry: {
+//         id: commonRegistry.id
+//       }
+//       image: {
+//         name: 'nginx'
+//         tag: 'latest'
+//       }
+//     }
+//   }
+// }
 
 output RESOURCE_TOKEN string = resourceToken
 output AZURE_RESOURCE_GROUP_NAME string = rg.name

@@ -33,6 +33,7 @@ az provider register --namespace Microsoft.ContainerService
 # Adds CICD_CLIENT_ID=$created_clientid to .env
 ```
 
+## Provision Core Resources
 ```bash
 # Provision Azure resources
 ./script/devops.sh provision --name "$APP_NAME" --location "$AZURE_LOCATION"

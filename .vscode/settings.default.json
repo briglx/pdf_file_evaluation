@@ -1,4 +1,5 @@
 {
+    "docker.dockerSocketDiagnostics": true,
     "editor.formatOnPaste": false,
     "editor.formatOnSave": true,
     "editor.formatOnType": true,

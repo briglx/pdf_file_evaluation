@@ -27,6 +27,7 @@
       },
       // Please keep this file in sync with settings in ./.vscode/settings.default.json
       "settings": {
+        "docker.dockerSocketDiagnostics": true,
         "editor.formatOnPaste": false,
         "editor.formatOnSave": true,
         "editor.formatOnType": true,
@@ -47,10 +48,10 @@
         }
       }
     },
-    "hostRequirements": {
-      "cpus": 4,
-      "memory": "8gb",
-      "storage": "32gb"
-    },
+    // "hostRequirements": {
+    //   "cpus": 4,
+    //   "memory": "8gb",
+    //   "storage": "32gb"
+    // },
     "postCreateCommand": "git config diff.wsErrorHighlight all && pre-commit install && pre-commit run --all-files"
   }
