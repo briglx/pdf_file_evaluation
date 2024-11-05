@@ -2,7 +2,7 @@
 
 Example API project to upload a file with metadata.
 
-## Provision
+## Build
 
 ```bash
 # Build Docker image
@@ -33,6 +33,8 @@ curl -F "file=@${test_file_path}" -F "title=${metadata_title}" -F "description=$
 # Build for deployment
 docker build -t "$image_name" -f "${dockerfile_path}" "${project_root}"
 ```
+
+## Deploy
 
 Deploy image to a new container app
 

@@ -40,9 +40,8 @@ az provider register --namespace Microsoft.ContainerService
 ```
 
 ## Deploy the Application
-```bash
-docker build -t $APP_NAME .
-```
+
+Build and Deploy [`python api` Container App](./api_python/README.md)
 
 # Development
 
