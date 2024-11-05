@@ -44,13 +44,19 @@ Deploy image to a new container app
 
 # Login to cloud cli. Only required once per install.
 az login --tenant $AZURE_TENANT_ID
-az acr login --name "${AZURE_CONTAINER_REGISTRY_NAME}"
-docker login -u "$AZURE_CONTAINER_REGISTRY_USERNAME" -p "$AZURE_CONTAINER_REGISTRY_PASSWORD" "${AZURE_CONTAINER_REGISTRY_NAME}.azurecr.io"
 
-registry_host="${AZURE_CONTAINER_REGISTRY_NAME}.azurecr.io"
+registry_host="${ACR_NAME}.azurecr.io"
 namespace="$AZURE_CONTAINER_INFRA_NAMESPACE"
 current_date_time=$(date +"%Y%m%dT%H%M")
 tag="2024.10.1.dev${current_date_time}"
+
+# Cloud Build
+az acr build --registry "$registry_host" -t "${namespace}/${image_name}:${tag}" -f "${dockerfile_path}" "${project_root}"
+
+# Or Local Docker Build
+# Login to cloud cli. Only required once per install.
+az acr login --name "${ACR_NAME}"
+docker login -u "$ACR_USERNAME" -p "$ACR_PASSWORD" "${ACR_NAME}.azurecr.io"
 
 # Build image
 docker build -t "$image_name" -f "${dockerfile_path}" "${project_root}"
@@ -63,10 +69,34 @@ docker push "${registry_host}/${namespace}/${image_name}:${tag}"
 docker tag "${image_name}" "${registry_host}/${namespace}/${image_name}:latest"
 docker push "${registry_host}/${namespace}/${image_name}:latest"
 
+########
+
+# Cloud Build Deplomnt
+
+az acr login --name "${ACR_NAME}" "${ACR_PASSWORD}"
+az acr login --name "$ACR_NAME" --username "$ACR_USERNAME" --password "$ACR_PASSWORD"
+TOKEN=$(az acr login --name "${ACR_NAME}" --expose-token --output tsv --query accessToken)
+
 # Create container app
+az containerapp create \
+  --name ca-pdffileevalwestus3 \
+  --resource-group rg_pdf_file_eval_westus3 \
+  --environment caepdffileevalwestus3 \
+  --image "crdefaulteastus.azurecr.io/infra/ai.doc.eval.api_python:2024.10.1.dev20241104T1942" \
+  --registry-server "$ACR_NAME" \
+  --registry-username "$ACR_USERNAME" \
+  --registry-password "$ACR_PASSWORD"
+
+  --cpu 0.5 --memory 1 \
+
+
+
+
+
 # docker tag "${image_name}" "${AZURE_CONTAINER_REGISTRY_NAME}.azurecr.io/${image_name}"
 # docker push "${AZURE_CONTAINER_REGISTRY_NAME}.azurecr.io/${image_name}"
-response=$(az container create -g "$MLFOW_ACI_RESOURCE_GROUP" --name "mlflowserver" --image "${registry_host}/${namespace}/${image_name}:latest" --cpu 1 --memory 1 --registry-username "$AZURE_CONTAINER_REGISTRY_USERNAME"  --registry-password "$AZURE_CONTAINER_REGISTRY_PASSWORD" --ip-address Public --ports 80 443)
+clean_name=$(echo "ca-${APP_NAME}${AZURE_LOCATION}" | tr -cd '[:alnum:]-')
+response=$(az containerapp create -g "$AZURE_RESOURCE_GROUP_NAME" --name "$clean_name" --environment "$APP_ENVIRONMENT_NAME" --image "${registry_host}/${namespace}/${image_name}:${tag}" --cpu 0.5 --memory 1 --registry-server "$registry_host" --registry-username "$ACR_USERNAME" --registry-password "$ACR_PASSWORD")
 ip_address=$(echo "$response" | jq -r '.ipAddress.ip')
 iso_date_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 {

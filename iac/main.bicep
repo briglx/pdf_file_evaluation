@@ -82,7 +82,7 @@ resource commonRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-previ
 }
 var registryExists = !empty(commonRegistry.id)
 module containerRegistry './core/host/containerregistry.bicep' = if (!registryExists) {
-  name: 'containerRegistry'
+  name: '${deployment().name}-containerRegistry'
   scope: rg_common
   params: {
     name: !empty(commonAcrName) ? commonAcrName : '${abbrs.containerRegistryRegistries}${resourceToken}'
@@ -101,7 +101,7 @@ resource commonLogAnalytics 'Microsoft.OperationalInsights/workspaces@2021-12-01
 }
 var workspaceExists = !empty(commonLogAnalytics.id)
 module logAnalytics './core/monitor/loganalytics.bicep' = if (!workspaceExists) {
-  name: 'logAnalytics'
+  name: '${deployment().name}-logAnalytics'
   scope: rg_common
   params: {
     name: !empty(commonLogAnalyticsName) ? commonLogAnalyticsName : '${abbrs.operationalInsightsWorkspaces}Default-${rg_common.location}'
@@ -120,7 +120,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing
 }
 var applicationInsightsExists = !empty(applicationInsights.id)
 module appInsights './core/monitor/applicationinsights.bicep' = if (!applicationInsightsExists) {
-  name: 'appInsights'
+  name: '${deployment().name}-appInsights'
   scope: rg_common
   params: {
     name: !empty(commonAppInsightsName) ? commonAppInsightsName : '${abbrs.insightsComponents}-default-${rg_common.location}'
@@ -143,7 +143,7 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 // Container App Environment
 var appEnvName = '${abbrs.appManagedEnvironments}${applicationName}_${location}'
 module environment './core/host/managedEnvironment.bicep' = {
-  name: 'containerAppEnv'
+  name: '${deployment().name}-containerAppEnv'
   scope: rg
   params: {
     name: appEnvName
@@ -156,16 +156,18 @@ module environment './core/host/managedEnvironment.bicep' = {
 }
 
 module containerApp './core/host/containerapp.bicep' = {
-  name: 'containerApp'
+  name: '${deployment().name}-containerApp'
   scope: rg
   params: {
     name: '${abbrs.appContainerApps}${applicationName}_${location}'
     location: location
     tags: tags
-    environmentName: appEnvName
+    environmentName: environment.outputs.name
     environmentRg: rg.name
     registryName: containerRegistryName
     registryRg: commonRgName
+    userAssignedIdentityName: '${abbrs.managedIdentityUserAssignedIdentities}${applicationName}_${location}'
+    containerName: 'flask-api'
   }
 }
 // // Container App
@@ -210,4 +212,6 @@ output APP_INSIGHTS_NAME string = appInsightsName
 
 output APP_ENVIRONMENT_ID string = environment.outputs.id
 output APP_ENVIRONMENT_NAME string = environment.outputs.name
-output baseTime string = baseTime
+
+output CONTAINER_APP_NAME string = containerApp.outputs.name
+output CONTAINER_APP_IDENTITY_ID string = containerApp.outputs.identityPrincipalId
