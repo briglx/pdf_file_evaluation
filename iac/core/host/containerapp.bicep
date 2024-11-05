@@ -90,6 +90,35 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
               cpu: json('0.5')
               memory: '1.0Gi'
           }
+          probes: [
+            {
+              type: 'startup'
+              httpGet: {
+                path: '/health'
+                port: 5000
+              }
+              initialDelaySeconds: 3
+              periodSeconds: 1
+            }
+            {
+              type: 'readiness'
+              httpGet: {
+                path: '/health'
+                port: 5000
+              }
+              initialDelaySeconds: 3
+              periodSeconds: 5
+            }
+            {
+              type: 'liveness'
+              httpGet: {
+                path: '/health'
+                port: 5000
+              }
+              initialDelaySeconds: 7
+              periodSeconds: 5
+            }
+          ]
         }
       ]
     }
